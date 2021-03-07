@@ -135,11 +135,7 @@ float readTemperature() {
 
   float temp;
   interruption();
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.display();
+  displaySetUp(2, 0, 0);
   sensor_t sensor;
   dht.temperature().getSensor(&sensor);
   sensors_event_t event;
@@ -150,41 +146,43 @@ float readTemperature() {
       Serial.println(F("Error reading temperature!"));
     }
     else {
-      display.print("Temperature: ");
+      display.println("Temp: ");
       display.print(event.temperature);
       display.println(" C");
       display.display();
       delay(2000);
     }
 
-    return temp;
+  return temp;
 }
 
 /////////////// Sub Routine for humidity reading ///////////////
-void readHumidity()
-{
+float readHumidity() {
+
+  float hum;
   interruption();
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.display();
+  displaySetUp(2, 0, 0);
   sensor_t sensor;
   dht.humidity().getSensor(&sensor);
   sensors_event_t event;
   dht.humidity().getEvent(&event);
+  hum = event.relative_humidity;
+
   if (isnan(event.relative_humidity)) {
       Serial.println(F("Error reading humidity"));
     }
     else {
-      display.print("Humidity: ");
+      display.println("Humidity: ");
       display.print(event.relative_humidity);
       display.println(" %");
       display.display();
       delay(2000);
     }
+
+  return hum;
 }
 
+////////////////////////////// Sub Routine for WiFi Connection //////////////////////////////
 void connectWiFi() {
   displaySetUp(1, 0, 0);
   display.print("Connecting to ");
@@ -204,7 +202,7 @@ void connectWiFi() {
   Serial.println(ssid);
 }
 
-////////////////////////////// Sub Routine to send data to Azure IoT Hub /////////////////////////////
+////////////////////////////// Sub Routine to connect to Azure IoT Hub /////////////////////////////
 void connectMQTT() {
 
   displaySetUp(1, 0, 0);
@@ -225,18 +223,21 @@ void connectMQTT() {
 
 }
 
+////////////////////////////// Sun routine to publish data in Azure IoT Hub //////////////////////////////
 void publishMessage() {
 
   Serial.println("Publishing message");
 
   // send message, the Print interface can be used to set the message contents
   mqttClient.beginMessage("devices/" + deviceId + "/messages/events/");
-  //mqttClient.print("Temperature: ");
-  mqttClient.print(readTemperature());
-  mqttClient.print(millis());
+  StaticJsonDocument<256> doc;
+  doc["temperature"] = readTemperature();
+  doc["humidity"] = readHumidity();
+  serializeJson(doc, mqttClient);
   mqttClient.endMessage();
 }
 
+////////////////////////////// Setup //////////////////////////////
 void setup() {
 
   WiFi.setPins(8,7,4,2);
@@ -275,6 +276,7 @@ void setup() {
   }
 }
 
+////////////////////////////// Loop //////////////////////////////
 void loop() {
   
   // poll for new MQTT messages and send keep alives
