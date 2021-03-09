@@ -231,6 +231,7 @@ void publishMessage() {
   // send message, the Print interface can be used to set the message contents
   mqttClient.beginMessage("devices/" + deviceId + "/messages/events/");
   StaticJsonDocument<256> doc;
+  doc["deviceId"] = deviceId;
   doc["temperature"] = readTemperature();
   doc["humidity"] = readHumidity();
   serializeJson(doc, mqttClient);
