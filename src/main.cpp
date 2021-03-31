@@ -1,3 +1,9 @@
+/**
+ * @Author: Sergio Oviedo Seas
+ * @Date:   2021-03-06 15:15:12
+ * @Last Modified by:   Sergio Oviedo Seas
+ * @Last Modified time: 2021-03-21 13:03:24
+ */
 
 #include <SPI.h>
 #include <Arduino.h>

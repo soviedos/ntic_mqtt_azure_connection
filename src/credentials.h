@@ -2,10 +2,10 @@
  * @Author: Sergio Oviedo Seas
  * @Date:   2021-03-06 15:23:13
  * @Last Modified by:   Sergio Oviedo Seas
- * @Last Modified time: 2021-03-21 12:55:12
+ * @Last Modified time: 2021-03-21 20:36:14
  */
 // Fill in  your WiFi networks SSID and password
-#define SECRET_SSID      "TNT3"
+#define SECRET_SSID      "TNT1"
 #define SECRET_PASS      "DFGHMNBVZX"
 
 // Fill in the hostname of your Azure IoT Hub broker
