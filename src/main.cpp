@@ -2,21 +2,30 @@
  * @Author: Sergio Oviedo Seas
  * @Date:   2021-03-06 15:15:12
  * @Last Modified by:   Sergio Oviedo Seas
- * @Last Modified time: 2021-03-21 13:03:24
+ * @Last Modified time: 2021-03-30 20:49:53
  */
 
 #include <SPI.h>
 #include <Arduino.h>
+#include <Wire.h>
 #include <ArduinoMqttClient.h>
 #include <ArduinoJson.h>
+#include <WiFiUdp.h>
 #include <WiFi101.h> // change to #include <WiFi101.h> for MKR1000
+#include <NTPClient.h>
 #include <Adafruit_GFX.h> // Graphics core library
 #include <Adafruit_SSD1306.h> // Library for Monochrome OLEDs display
 #include <DHT.h>
 #include <DHT_U.h>
 #include "credentials.h"
+#include "MAX30105.h" //sparkfun MAX3010X library
+#include "heartRate.h"
 
-/////// Enter your sensitive data in credentials.h
+// I2C pines definition
+#define I2C_SDA 20
+#define I2C_SCL 21
+
+// Enter your sensitive data in credentials.h
 const char ssid[]        = SECRET_SSID;
 const char pass[]        = SECRET_PASS;
 const char broker[]      = SECRET_BROKER;
@@ -38,6 +47,15 @@ IPAddress ip(192,168,0,5);
 IPAddress gateway(192,168,0,1);
 IPAddress subnet(255,255,255,0);
 IPAddress dns(8,8,8,8);
+
+// Define NTP Client to get time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+
+// Variables to save date and time
+String formattedDate;
+String dayStamp;
+String timeStamp;
 
 // Display instance
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &Wire);
@@ -188,6 +206,50 @@ float readHumidity() {
   return hum;
 }
 
+/////////////// Sub Routine to get actual date ///////////////
+String getDate() {
+
+  while(!timeClient.update()) {
+    timeClient.forceUpdate();
+  }
+  // The formattedDate comes with the following format:
+  // 2018-05-28T16:00:13Z
+  // We need to extract date and time
+  formattedDate = timeClient.getFormattedDate();
+  //Serial.println(formattedDate);
+
+  // Extract date
+  int splitT = formattedDate.indexOf("T");
+  dayStamp = formattedDate.substring(0, splitT);
+  //Serial.print("DATE: ");
+  //Serial.println(dayStamp);
+ 
+  return dayStamp;
+
+}
+
+/////////////// Sub Routine to get actual time ///////////////
+String getActualTime() {
+
+  while(!timeClient.update()) {
+    timeClient.forceUpdate();
+  }
+  // The formattedDate comes with the following format:
+  // 2018-05-28T16:00:13Z
+  // We need to extract date and time
+  formattedDate = timeClient.getFormattedDate();
+  //Serial.println(formattedDate);
+
+  // Extract time
+  int splitT = formattedDate.indexOf("T");
+  timeStamp = formattedDate.substring(splitT+1, formattedDate.length()-1);
+  //Serial.print("HOUR: ");
+  //Serial.println(timeStamp);
+
+  return timeStamp;
+
+}
+
 ////////////////////////////// Sub Routine for WiFi Connection //////////////////////////////
 void connectWiFi() {
   displaySetUp(1, 0, 0);
@@ -238,8 +300,10 @@ void publishMessage() {
   mqttClient.beginMessage("devices/" + deviceId + "/messages/events/");
   StaticJsonDocument<256> doc;
   doc["deviceId"] = deviceId;
-  doc["temperature"] = readTemperature();
+  doc["temperature Ambient"] = readTemperature();
   doc["humidity"] = readHumidity();
+  doc["date"] = getDate();
+  doc["time"] = getActualTime();
   serializeJson(doc, mqttClient);
   mqttClient.endMessage();
 }
@@ -253,7 +317,7 @@ void setup() {
 
   // Initialization for DHT_11 sensor
   initSensor();
-  
+
   // Display Initialization
   displayInit();
 
@@ -281,6 +345,16 @@ void setup() {
     // MQTT client is disconnected, connect
     connectMQTT();
   }
+
+  // Initialize a NTPClient to get time
+  timeClient.begin();
+  // Set offset time in seconds to adjust for your timezone, for example:
+  // GMT +1 = 3600
+  // GMT +8 = 28800
+  // GMT -1 = -3600
+  // GMT 0 = 0
+  // Costa Rica GMT -6 = -21600
+  timeClient.setTimeOffset(-21600);
 }
 
 ////////////////////////////// Loop //////////////////////////////
@@ -291,8 +365,9 @@ void loop() {
 
   // publish a message roughly every 5 seconds.
   if (millis() - lastMillis > 5000) {
-    lastMillis = millis();
 
+    lastMillis = millis();
     publishMessage();
+    
   }
 }
