@@ -300,6 +300,9 @@ void publishMessage() {
   mqttClient.beginMessage("devices/" + deviceId + "/messages/events/");
   StaticJsonDocument<256> doc;
   doc["deviceId"] = deviceId;
+  doc["body temperature"] = 35;
+  doc["heart beat"] = 65;
+  doc["SpO2"] = 100;
   doc["temperature Ambient"] = readTemperature();
   doc["humidity"] = readHumidity();
   doc["date"] = getDate();
