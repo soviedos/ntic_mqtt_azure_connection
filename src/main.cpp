@@ -302,7 +302,7 @@ void publishMessage() {
   doc["deviceId"] = deviceId;
   doc["body temperature"] = 35;
   doc["heart beat"] = 65;
-  doc["SpO2"] = 100;
+  doc["SpO2"] = 98;
   doc["temperature Ambient"] = readTemperature();
   doc["humidity"] = readHumidity();
   doc["date"] = getDate();
